@@ -6,9 +6,10 @@ import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {mockLoreCards, type LoreCard} from '@sideline/lore';
 import {DefaultCompanion} from '@sideline/config';
 import {useAppContext} from '../state/context';
+import {useScoutStore} from '../state/scout';
 import {mockUserContext, privacyStore} from '../state/privacy';
 import {colors, styles} from '../ui/theme';
-import type {LoreStackParamList, RootTabs} from '../App';
+import type {HomeStackParamList, RootTabs} from '../App';
 
 const companionEngine = new DefaultCompanion();
 
@@ -53,7 +54,8 @@ const CHILDREN: Record<string, string[]> = {
 
 export function LoreScreen() {
   const ctx = useAppContext();
-  const navigation = useNavigation<NativeStackNavigationProp<LoreStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+  const askAbout = useScoutStore(s => s.askAbout);
   const [trail, setTrail] = useState<string[]>(['root']);
   const currentId = trail[trail.length - 1] ?? 'root';
   const card = CARDS[currentId] ?? ROOT_CARD;
@@ -74,8 +76,19 @@ export function LoreScreen() {
   };
   const researchThis = () => {
     ctx.setSeed({kind: 'search-query', query: card.title}, 'Lore');
-    navigation.getParent<BottomTabNavigationProp<RootTabs>>()?.navigate('Research', {screen: 'Answer', params: {question: card.title}});
+    // Scout opens over the current page with the node's question — no retyping.
+    askAbout({question: card.title, seed: {kind: 'search-query', query: card.title}});
+    navigation.getParent<BottomTabNavigationProp<RootTabs>>()?.navigate('Tabs', {screen: 'Browser'});
   };
+
+  const DEMO_LINKS: {route: 'WebSearch' | 'Article' | 'Player' | 'PlayerProp' | 'FantasyMatchup' | 'Chirp'; label: string}[] = [
+    {route: 'WebSearch', label: 'Web search demo'},
+    {route: 'Article', label: 'Article demo'},
+    {route: 'Player', label: 'Player demo'},
+    {route: 'PlayerProp', label: 'Player prop demo'},
+    {route: 'FantasyMatchup', label: 'Fantasy matchup demo'},
+    {route: 'Chirp', label: 'Chirp demo'},
+  ];
 
   return (
     <ScrollView style={styles.root}>
@@ -116,9 +129,18 @@ export function LoreScreen() {
         </View>
       )}
 
-      <TouchableOpacity onPress={researchThis} style={{marginBottom: 32}}>
-        <Text style={styles.button}>Research this node ›</Text>
+      <TouchableOpacity onPress={researchThis} style={{marginBottom: 16}}>
+        <Text style={styles.button}>Scout this ›</Text>
       </TouchableOpacity>
+
+      <View style={[styles.card, {marginBottom: 32}]}>
+        <Text style={[styles.muted, {marginBottom: 8, fontWeight: '700'}]}>DEMOS</Text>
+        {DEMO_LINKS.map(d => (
+          <TouchableOpacity key={d.route} onPress={() => navigation.navigate(d.route)} style={{paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border}}>
+            <Text style={styles.body}>{d.label} ›</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </ScrollView>
   );
 }

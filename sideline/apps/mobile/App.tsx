@@ -1,19 +1,67 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {NavigationContainer, type NavigatorScreenParams} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {ContentStack} from './navigation/ContentStack';
-import {ResearchStack} from './navigation/ResearchStack';
-import {LoreStack} from './navigation/LoreStack';
+import {HomeStack} from './navigation/HomeStack';
+import {SitesStack} from './navigation/SitesStack';
+import {TabsStack} from './navigation/TabsStack';
 import {AppContextProvider} from './state/context';
-import {ResearchScreen} from './screens/ResearchScreen';
-import {LoreScreen} from './screens/LoreScreen';
-import {colors} from './ui/theme';
+import {BottomBar} from './components/BottomBar';
+import {useTabsStore} from './state/tabs';
+import {useMobileStore} from './state/mobile';
 
-export type RootTabs = {Content: NavigatorScreenParams<ContentStackParamList>; Research: NavigatorScreenParams<ResearchStackParamList>; Lore: NavigatorScreenParams<LoreStackParamList>};
-export type ContentStackParamList = {Browser: undefined; WebSearch: undefined; Article: undefined; Player: undefined; PlayerProp: undefined; FantasyMatchup: undefined; Chirp: undefined};
+export type RootTabs = {
+  Home: NavigatorScreenParams<HomeStackParamList>;
+  Sites: NavigatorScreenParams<SitesStackParamList>;
+  Tabs: NavigatorScreenParams<TabsStackParamList>;
+  Scout: undefined;
+};
+export type HomeStackParamList = {LoreHome: undefined; WebSearch: undefined; Article: undefined; Player: undefined; PlayerProp: undefined; FantasyMatchup: undefined; Chirp: undefined};
+export type SitesStackParamList = {Tray: undefined};
+export type TabsStackParamList = {Browser: undefined; Switcher: undefined};
+
+/**
+ * Parked: the dedicated Research stack is unmounted while the Scout panel
+ * (bottom-bar item + floating pill) covers research over the current page.
+ * Kept so the existing ResearchScreen/AIHomeScreen still compile.
+ */
 export type ResearchStackParamList = {Home: undefined; Answer: {question: string}};
-export type LoreStackParamList = {Home: undefined};
-const Tabs=createBottomTabNavigator<RootTabs>();
-export default function App(){return <SafeAreaProvider><AppContextProvider><NavigationContainer><Tabs.Navigator screenOptions={{headerShown:false,tabBarActiveTintColor:colors.accent,tabBarStyle:{backgroundColor:colors.panel,borderTopColor:colors.border}}}><Tabs.Screen name="Content" component={ContentStack}/><Tabs.Screen name="Research" component={ResearchStack}/><Tabs.Screen name="Lore" component={LoreStack}/></Tabs.Navigator></NavigationContainer></AppContextProvider></SafeAreaProvider>}
+
+const Tabs = createBottomTabNavigator<RootTabs>();
+
+/** Scout is an action in the bottom bar, not a destination — renders nothing. */
+function ScoutPlaceholder() {
+  return null;
+}
+
+function BootLoader({children}: {children: React.ReactNode}) {
+  const loadTabs = useTabsStore(s => s.load);
+  const loadHistory = useMobileStore(s => s.loadHistory);
+  useEffect(() => {
+    void loadTabs();
+    void loadHistory();
+  }, [loadTabs, loadHistory]);
+  return <>{children}</>;
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContextProvider>
+        <BootLoader>
+          <NavigationContainer>
+            <Tabs.Navigator
+              initialRouteName="Home"
+              tabBar={props => <BottomBar {...props} />}
+              screenOptions={{headerShown: false}}>
+              <Tabs.Screen name="Home" component={HomeStack} />
+              <Tabs.Screen name="Sites" component={SitesStack} />
+              <Tabs.Screen name="Tabs" component={TabsStack} />
+              <Tabs.Screen name="Scout" component={ScoutPlaceholder} />
+            </Tabs.Navigator>
+          </NavigationContainer>
+        </BootLoader>
+      </AppContextProvider>
+    </SafeAreaProvider>
+  );
+}

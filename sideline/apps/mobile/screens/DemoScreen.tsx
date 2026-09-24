@@ -5,8 +5,9 @@ import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {contextLabel, type ContextSeed} from '@sideline/context';
 import {useAppContext} from '../state/context';
+import {useScoutStore} from '../state/scout';
 import {colors, styles} from '../ui/theme';
-import type {ContentStackParamList, RootTabs} from '../App';
+import type {HomeStackParamList, RootTabs} from '../App';
 
 export type DemoMode = 'search' | 'article' | 'player' | 'prop' | 'fantasy';
 
@@ -45,7 +46,8 @@ const SEEDS: Record<DemoMode, {seed: ContextSeed; screen: string; heading: strin
 
 export function DemoScreen({mode}: {mode: DemoMode}) {
   const ctx = useAppContext();
-  const navigation = useNavigation<NativeStackNavigationProp<ContentStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+  const askAbout = useScoutStore(s => s.askAbout);
   const {seed, screen, heading} = SEEDS[mode];
 
   // Publishing the seed on focus is the whole contract: whatever the user
@@ -58,7 +60,8 @@ export function DemoScreen({mode}: {mode: DemoMode}) {
   );
 
   const openResearch = () => {
-    navigation.getParent<BottomTabNavigationProp<RootTabs>>()?.navigate('Research', {screen: 'Home'});
+    askAbout({question: contextLabel(seed), seed});
+    navigation.getParent<BottomTabNavigationProp<RootTabs>>()?.navigate('Tabs', {screen: 'Browser'});
   };
 
   return (
@@ -70,7 +73,7 @@ export function DemoScreen({mode}: {mode: DemoMode}) {
       </View>
       <DemoBody mode={mode} />
       <TouchableOpacity onPress={openResearch} style={{marginTop: 8, marginBottom: 32}}>
-        <Text style={styles.button}>Ask about this in Research ›</Text>
+        <Text style={styles.button}>Ask Scout about this ›</Text>
       </TouchableOpacity>
     </ScrollView>
   );

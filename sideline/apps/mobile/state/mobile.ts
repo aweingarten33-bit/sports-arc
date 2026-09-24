@@ -3,39 +3,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {privacyStore} from './privacy';
 
 export interface HistoryItem {
-  url: string;
-  title?: string;
-  visitedAt: string;
-}
-
-// Tab state is structured for a future tab switcher. Milestone 1 ships a
-// single tab; adding tabs later means appending to `tabs` and switching
-// `activeTabId` — no BrowserScreen rewrite needed.
-export interface BrowserTab {
   id: string;
   url: string;
   title: string;
+  at: string;
 }
 
-export const HOME_URL = 'https://duckduckgo.com/';
+// Tab state moved to state/tabs.ts (persistent multi-tab host with a
+// switcher). This store keeps navigation history only.
 
 interface MobileState {
   history: HistoryItem[];
-  tabs: BrowserTab[];
-  activeTabId: string;
   loadHistory: () => Promise<void>;
   addHistory: (item: HistoryItem) => Promise<void>;
   clearHistory: () => Promise<void>;
-  setTabUrl: (id: string, url: string, title?: string) => void;
-  setActiveTab: (id: string) => void;
 }
 
 const HISTORY_KEY = 'sideline.history';
 
 export const useMobileStore = create<MobileState>((set, get) => ({
   history: [],
-  tabs: [{id: 'tab-1', url: HOME_URL, title: 'New tab'}],
-  activeTabId: 'tab-1',
 
   async loadHistory() {
     const raw = await AsyncStorage.getItem(HISTORY_KEY);
@@ -54,13 +41,5 @@ export const useMobileStore = create<MobileState>((set, get) => ({
     await privacyStore.deleteHistory();
     set({history: []});
     await AsyncStorage.removeItem(HISTORY_KEY);
-  },
-
-  setTabUrl(id, url, title) {
-    set({tabs: get().tabs.map(t => (t.id === id ? {...t, url, title: title ?? t.title} : t))});
-  },
-
-  setActiveTab(id) {
-    set({activeTabId: id});
   },
 }));
