@@ -10,3 +10,4 @@ export const mockChangeEvents:ChangeEvent[]=[{id:'c1',type:'line-move',subject:'
 
 export { defaultSites, rankSites, isSportsbookUrl, CATEGORY_ORDER, CATEGORY_LABELS } from './sites';
 export type { SiteTile, RankContext, SiteCategory } from './sites';
+export { resolveApiBaseUrl, DEFAULT_DEV_API_URL, DEFAULT_PROD_API_URL } from './api';
