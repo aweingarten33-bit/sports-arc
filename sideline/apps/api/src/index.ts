@@ -11,8 +11,8 @@ app.get('/health', async () => ({ ok: true, service: 'sideline-api' }));
 app.post<{ Body: { question: string; context: ContextEnvelope } }>(
   '/research',
   async (request, reply) => {
-    if (!request.body?.question || !request.body.context)
-      return reply.code(400).send({ error: 'question and context required' });
+    if (!request.body?.question || typeof request.body.context?.seed?.kind !== 'string')
+      return reply.code(400).send({ error: 'question and a context envelope with seed.kind required' });
     const events = [];
     for await (const event of new MockResearchEngine().research(
       request.body.question,
@@ -28,8 +28,8 @@ app.post<{ Body: { question: string; context: ContextEnvelope } }>(
 app.post<{ Body: { question: string; context: ContextEnvelope } }>(
   '/api/research/stream',
   async (request, reply) => {
-    if (!request.body?.question || !request.body.context)
-      return reply.code(400).send({ error: 'question and context required' });
+    if (!request.body?.question || typeof request.body.context?.seed?.kind !== 'string')
+      return reply.code(400).send({ error: 'question and a context envelope with seed.kind required' });
     const { question, context } = request.body;
 
     reply.hijack();
