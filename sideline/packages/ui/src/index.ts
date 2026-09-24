@@ -1,4 +1,4 @@
-import type { ContextEnvelope } from '@sideline/types';
+import type { ContextEnvelope } from '@sideline/context';
 export interface PrivacyStore { preferences:{personalization:boolean;privateBrowsing:boolean;analytics:boolean;notifications:boolean}; deleteHistory():Promise<void>; deleteResearch():Promise<void>; deleteLore():Promise<void>; }
 export function createPrivacyStore():PrivacyStore {return {preferences:{personalization:true,privateBrowsing:false,analytics:false,notifications:true},async deleteHistory(){},async deleteResearch(){},async deleteLore(){}};}
 export function aiHome(envelope:ContextEnvelope){return {label:envelope.seed.kind==='player-prop'?'Ask about this prop':envelope.seed.kind==='fantasy-matchup'?'Analyze my matchup':'Ask about this',suggestedActions:['Explain the context','Show the important detail','What should I explore next?']};}

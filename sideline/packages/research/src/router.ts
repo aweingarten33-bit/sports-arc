@@ -1,4 +1,4 @@
-import type { ContextEnvelope } from '@sideline/types';
+import type { ContextEnvelope } from '@sideline/context';
 export type RouteNeed = 'app-context'|'sports-data'|'fantasy-data'|'odds-data'|'web-research';
 export interface QueryPlan { needs: RouteNeed[]; reason: string; }
 export interface QueryRequest { question:string; context:ContextEnvelope; }

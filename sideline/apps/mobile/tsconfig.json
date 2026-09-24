@@ -1,0 +1,1 @@
+{"compilerOptions":{"noEmit":true,"noImplicitOverride":true,"noUncheckedIndexedAccess":true,"strict":true},"extends":"./node_modules/expo/tsconfig.base","include":["App.tsx","navigation","state","screens","ui"]}
