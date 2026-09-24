@@ -1,12 +1,19 @@
-import React, {useMemo, useState} from 'react';
-import {SafeAreaView, ScrollView, Text, TextInput, Pressable, View, StyleSheet} from 'react-native';
-import {WebView} from 'react-native-webview';
-import {createContextStore} from '@sideline/context';
-import {contextLabel} from '@sideline/types';
-import {MockResearchEngine} from '@sideline/research';
-import {mockChangeEvents,mockUserContext,DefaultCompanion,chirp} from '@sideline/config';
-import {mockLeague} from '@sideline/fantasy';
-import type {ContextSeed} from '@sideline/types';
-const store=createContextStore();
-export default function App(){const [screen,setScreen]=useState('player');const [question,setQuestion]=useState('why did this move?');const [answer,setAnswer]=useState(''); const companion=useMemo(()=>new DefaultCompanion().line(mockUserContext,{personalization:true,privateBrowsing:false,analytics:false,notifications:true}),[]); const seed:ContextSeed=screen==='player'?{kind:'player',playerId:'brunson',name:'Jalen Brunson'}:screen==='prop'?{kind:'player-prop',propId:'brunson-over',playerId:'brunson',line:27.5,odds:-110}:screen==='fantasy'?{kind:'fantasy-matchup',matchupId:'matchup-1'}:{kind:'article',articleId:'article-1',title:'Why this matchup matters'}; store.setSeed(seed,screen); const run=async()=>{let text='';for await(const e of new MockResearchEngine().research(question,store.envelope!)){if(e.answer)text=e.answer.directAnswer;}setAnswer(text);setScreen('research');}; return <SafeAreaView style={s.root}><Text style={s.brand}>SIDELINE</Text><View style={s.nav}>{['player','prop','fantasy','article','lore','chirp'].map(x=><Pressable key={x} onPress={()=>setScreen(x)}><Text style={s.navText}>{x}</Text></Pressable>)}</View>{screen==='research'?<ScrollView><Text style={s.companion}>{companion}</Text><Text style={s.title}>Scout</Text><Text>{answer}</Text><Pressable onPress={()=>setScreen('lore')}><Text style={s.button}>Discover next</Text></Pressable></ScrollView>:screen==='lore'?<ScrollView><Text style={s.title}>Lore</Text><Text style={s.companion}>{companion}</Text><Text>Forward: matchup context → usage → rivalry</Text><Pressable onPress={()=>setScreen('player')}><Text style={s.button}>Back to content</Text></Pressable></ScrollView>:screen==='chirp'?<ScrollView><Text style={s.title}>Chirp</Text>{mockChangeEvents.map(e=>{const n=chirp(e,mockUserContext,{personalization:true,privateBrowsing:false,analytics:false,notifications:true});return <Text key={e.id} style={s.card}>{n?.body}</Text>})}</ScrollView>:<ScrollView>{screen==='article'?<WebView style={{height:240}} source={{uri:'https://example.com'}}/>:<><Text style={s.title}>{screen==='prop'?'Knicks vs Celtics · Jalen Brunson over 27.5 (-110)':screen==='fantasy'?`12-team half-PPR superflex · ${mockLeague.name}`:'Jalen Brunson'}</Text><Text>{contextLabel(store.envelope!.seed)}</Text><TextInput value={question} onChangeText={setQuestion} placeholder="Ask about what you see" style={s.input}/><Pressable onPress={run}><Text style={s.button}>{screen==='prop'?'Ask about this prop':screen==='fantasy'?'Analyze my matchup':'Open Scout'}</Text></Pressable></>}</ScrollView>}</SafeAreaView>}
-const s=StyleSheet.create({root:{flex:1,padding:18,backgroundColor:'#101217'},brand:{color:'#fff',fontWeight:'800',fontSize:20},nav:{flexDirection:'row',gap:8,flexWrap:'wrap',marginVertical:16},navText:{color:'#9bdcff'},title:{color:'#fff',fontSize:24,fontWeight:'700',marginVertical:16},input:{backgroundColor:'#fff',padding:12,borderRadius:8,marginVertical:12},button:{color:'#8de0b1',fontSize:16,paddingVertical:14},companion:{color:'#ffcb7d',padding:12,backgroundColor:'#29231b',borderRadius:8},card:{color:'#fff',padding:16,borderBottomWidth:1,borderBottomColor:'#333'}});
+import React from 'react';
+import {NavigationContainer, type NavigatorScreenParams} from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {ContentStack} from './navigation/ContentStack';
+import {ResearchStack} from './navigation/ResearchStack';
+import {LoreStack} from './navigation/LoreStack';
+import {AppContextProvider} from './state/context';
+import {ResearchScreen} from './screens/ResearchScreen';
+import {LoreScreen} from './screens/LoreScreen';
+import {colors} from './ui/theme';
+
+export type RootTabs = {Content: NavigatorScreenParams<ContentStackParamList>; Research: NavigatorScreenParams<ResearchStackParamList>; Lore: NavigatorScreenParams<LoreStackParamList>};
+export type ContentStackParamList = {Browser: undefined; WebSearch: undefined; Article: undefined; Player: undefined; PlayerProp: undefined; FantasyMatchup: undefined; Chirp: undefined};
+export type ResearchStackParamList = {Home: undefined; Answer: {question: string}};
+export type LoreStackParamList = {Home: undefined};
+const Tabs=createBottomTabNavigator<RootTabs>();
+export default function App(){return <SafeAreaProvider><AppContextProvider><NavigationContainer><Tabs.Navigator screenOptions={{headerShown:false,tabBarActiveTintColor:colors.accent,tabBarStyle:{backgroundColor:colors.panel,borderTopColor:colors.border}}}><Tabs.Screen name="Content" component={ContentStack}/><Tabs.Screen name="Research" component={ResearchStack}/><Tabs.Screen name="Lore" component={LoreStack}/></Tabs.Navigator></NavigationContainer></AppContextProvider></SafeAreaProvider>}

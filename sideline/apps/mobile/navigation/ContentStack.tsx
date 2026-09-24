@@ -1,0 +1,5 @@
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import type {ContentStackParamList} from '../App';
+import {BrowserScreen} from '../screens/BrowserScreen'; import {DemoScreen} from '../screens/DemoScreen'; import {ChirpScreen} from '../screens/ChirpScreen';
+const Stack=createNativeStackNavigator<ContentStackParamList>();
+export function ContentStack(){return <Stack.Navigator><Stack.Screen name="Browser" component={BrowserScreen} options={{title:'Content'}}/><Stack.Screen name="WebSearch" children={()=> <DemoScreen mode="search"/>} options={{title:'Web search'}}/><Stack.Screen name="Article" children={()=> <DemoScreen mode="article"/>} options={{title:'Article'}}/><Stack.Screen name="Player" children={()=> <DemoScreen mode="player"/>} options={{title:'Player'}}/><Stack.Screen name="PlayerProp" children={()=> <DemoScreen mode="prop"/>} options={{title:'Player prop'}}/><Stack.Screen name="FantasyMatchup" children={()=> <DemoScreen mode="fantasy"/>} options={{title:'Fantasy matchup'}}/><Stack.Screen name="Chirp" component={ChirpScreen}/></Stack.Navigator>}
