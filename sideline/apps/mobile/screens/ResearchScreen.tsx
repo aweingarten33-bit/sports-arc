@@ -1,10 +1,11 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, ScrollView, Text, TouchableOpacity, View} from 'react-native';
+import {ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MockResearchEngine, type ProgressState, type ResearchAnswer} from '@sideline/research';
 import {useCurrentEnvelope} from '../state/context';
 import {colors, styles} from '../ui/theme';
+import {ScoutAnswerView} from '../components/ScoutAnswerView';
 import type {ResearchStackParamList} from '../App';
 
 const ALL_STATES: ProgressState[] = [
@@ -72,8 +73,6 @@ export function ResearchScreen() {
 
   return (
     <ScrollView style={styles.root}>
-      <Text style={styles.title}>{route.params.question}</Text>
-
       {/* Streaming progress */}
       <View style={styles.card}>
         {ALL_STATES.map(s => {
@@ -106,129 +105,17 @@ export function ResearchScreen() {
         </View>
       )}
 
-      {answer && <AnswerView answer={answer} onAsk={q => navigation.push('Answer', {question: q})} />}
+      {answer && (
+        <View style={{marginHorizontal: -16, marginTop: 4}}>
+          <ScoutAnswerView
+            question={route.params.question}
+            answer={answer}
+            pad={16}
+            onOpenSource={url => Linking.openURL(url)}
+            onFollowUp={q => navigation.push('Answer', {question: q})}
+          />
+        </View>
+      )}
     </ScrollView>
   );
-}
-
-function AnswerView({answer, onAsk}: {answer: ResearchAnswer; onAsk: (q: string) => void}) {
-  const sourceIndex = new Map(answer.sources.map((s, i) => [s.id, i + 1]));
-  return (
-    <View>
-      <Text style={[styles.title, {fontSize: 21}]}>{answer.title}</Text>
-      <View style={styles.card}>
-        <Text style={[styles.body, {fontSize: 17}]}>{answer.directAnswer}</Text>
-      </View>
-
-      {answer.keyPoints.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Key points" />
-          {answer.keyPoints.map((k, i) => (
-            <Text key={i} style={[styles.body, {marginBottom: 4}]}>• {k}</Text>
-          ))}
-        </View>
-      )}
-
-      {answer.stats.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Stats" />
-          {answer.stats.map((row, i) => (
-            <Text key={i} style={styles.body}>
-              {Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' · ')}
-            </Text>
-          ))}
-        </View>
-      )}
-
-      {answer.timeline.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Timeline" />
-          {answer.timeline.map((t, i) => (
-            <Text key={i} style={[styles.body, {marginBottom: 4}]}>→ {t}</Text>
-          ))}
-        </View>
-      )}
-
-      {answer.fantasyImpact && (
-        <View style={styles.card}>
-          <SectionTitle text="Fantasy impact" />
-          <Text style={styles.body}>{answer.fantasyImpact}</Text>
-        </View>
-      )}
-      {answer.bettingContext && (
-        <View style={styles.card}>
-          <SectionTitle text="Betting context" />
-          <Text style={styles.body}>{answer.bettingContext}</Text>
-        </View>
-      )}
-
-      {answer.claims.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Sourced claims" />
-          {answer.claims.map((c, i) => (
-            <Text key={i} style={[styles.body, {marginBottom: 6}]}>
-              {c.text}
-              {c.citationIds.map(id => ` [${sourceIndex.get(id) ?? '?'}]`).join('')}
-            </Text>
-          ))}
-        </View>
-      )}
-
-      {answer.conflicts.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Conflicting reports" />
-          {answer.conflicts.map((c, i) => (
-            <Text key={i} style={styles.body}>• {c}</Text>
-          ))}
-        </View>
-      )}
-      {answer.uncertainty.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Uncertainty" />
-          {answer.uncertainty.map((u, i) => (
-            <Text key={i} style={styles.body}>• {u}</Text>
-          ))}
-        </View>
-      )}
-
-      {answer.sources.length > 0 && (
-        <View>
-          <SectionTitle text="Sources" />
-          {answer.sources.map((s, i) => (
-            <View key={s.id} style={styles.card}>
-              <Text style={[styles.body, {fontWeight: '700'}]}>[{i + 1}] {s.title}</Text>
-              <Text style={[styles.body, {marginTop: 6, fontStyle: 'italic'}]}>"{s.quote}"</Text>
-              <Text style={[styles.muted, {marginTop: 6}]}>{s.url}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {answer.relatedQuestions.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Related questions" />
-          {answer.relatedQuestions.map((q, i) => (
-            <TouchableOpacity key={i} onPress={() => onAsk(q)}>
-              <Text style={[styles.button, {textAlign: 'left'}]}>{q} ›</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {answer.suggestedActions.length > 0 && (
-        <View style={styles.card}>
-          <SectionTitle text="Suggested actions" />
-          {answer.suggestedActions.map((a, i) => (
-            <TouchableOpacity key={i} onPress={() => onAsk(a)}>
-              <Text style={[styles.button, {textAlign: 'left'}]}>{a} ›</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
-function SectionTitle({text}: {text: string}) {
-  return <Text style={[styles.muted, {marginBottom: 8, fontWeight: '700'}]}>{text.toUpperCase()}</Text>;
 }

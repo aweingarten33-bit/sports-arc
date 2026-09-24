@@ -10,9 +10,9 @@ import {LinearGradient} from 'expo-linear-gradient';
 import {MockResearchEngine, type ProgressState, type ResearchAnswer} from '@sideline/research';
 import type {ContextEnvelope} from '@sideline/context';
 import {colors} from '../ui/theme';
-import {Favicon} from './Favicon';
+import {ScoutAnswerView} from './ScoutAnswerView';
 import {detectEntities, domainOf, type ExtractedPage} from '../lib/extract';
-import type {BrowserTab} from '../state/tabs';
+import {useTabsStore, type BrowserTab} from '../state/tabs';
 import type {ScoutAsk} from '../state/scout';
 
 interface ScoutPanelProps {
@@ -25,21 +25,19 @@ interface ScoutPanelProps {
 
 type Phase = 'reading' | 'researching' | 'done' | 'error';
 
-const HEADLINE_BLUE = '#7aa7ff';
-
 /**
  * Scout panel: AI research about the page you're actually on — no retyping.
  * Loading mirrors the reference vibe (purple→pink gradient, "Reading this
- * page" + domain); the answer mirrors the reference answer format (source
- * chips, blue headline, emoji-led fact sections). Powered by the existing
- * (mock) ResearchEngine.
+ * page" + domain); the answer uses the shared ScoutAnswerView (query pill,
+ * source cards, blue headline, emoji-led sections, pull quotes, follow-ups,
+ * feedback, sources). Powered by the existing (mock) ResearchEngine.
  */
 export function ScoutPanel({tab, extractPage, externalAsk, onClose}: ScoutPanelProps) {
   const [phase, setPhase] = useState<Phase>('reading');
   const [progress, setProgress] = useState<ProgressState[]>([]);
   const [answer, setAnswer] = useState<ResearchAnswer | null>(null);
   const [pageLabel, setPageLabel] = useState(domainOf(tab.url));
-  const [sourcesOpen, setSourcesOpen] = useState(true);
+  const [question, setQuestion] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [runKey, setRunKey] = useState(0);
   const [followUp, setFollowUp] = useState<string | null>(null);
@@ -77,6 +75,7 @@ export function ScoutPanel({tab, extractPage, externalAsk, onClose}: ScoutPanelP
           question = followUp ?? `Analyze this page for me: ${title}`;
         }
         envelopeRef.current = envelope;
+        setQuestion(question);
         if (!alive || ctrl.signal.aborted) return;
         setPhase('researching');
         setProgress([]);
@@ -128,17 +127,27 @@ export function ScoutPanel({tab, extractPage, externalAsk, onClose}: ScoutPanelP
           overflow: 'hidden',
         }}>
         {phase === 'done' && answer ? (
-          <AnswerView
-            answer={answer}
-            pageUrl={tab.url}
-            sourcesOpen={sourcesOpen}
-            onToggleSources={() => setSourcesOpen(v => !v)}
-            onFollowUp={q => {
-              setFollowUp(q);
-              setRunKey(k => k + 1);
-            }}
-            onClose={onClose}
-          />
+          <View style={{flex: 1}}>
+            <View style={{alignItems: 'center', paddingTop: 10}}>
+              <View style={{width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border}} />
+            </View>
+            <ScrollView style={{flex: 1}} contentContainerStyle={{paddingBottom: 140}}>
+              <ScoutAnswerView
+                question={question}
+                answer={answer}
+                pageUrl={tab.url}
+                pad={20}
+                onOpenSource={url => {
+                  useTabsStore.getState().openTab(url);
+                  onClose();
+                }}
+                onFollowUp={q => {
+                  setFollowUp(q);
+                  setRunKey(k => k + 1);
+                }}
+              />
+            </ScrollView>
+          </View>
         ) : phase === 'error' ? (
           <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24}}>
             <Text style={{color: colors.text, fontSize: 20, fontWeight: '700', marginBottom: 8}}>Scout hit a snag</Text>
@@ -203,155 +212,3 @@ function LoadingView({
   );
 }
 
-function AnswerView({
-  answer,
-  pageUrl,
-  sourcesOpen,
-  onToggleSources,
-  onFollowUp,
-  onClose,
-}: {
-  answer: ResearchAnswer;
-  pageUrl: string;
-  sourcesOpen: boolean;
-  onToggleSources: () => void;
-  onFollowUp: (q: string) => void;
-  onClose: () => void;
-}) {
-  const sourceIndex = new Map(answer.sources.map((s, i) => [s.id, i + 1]));
-  const chips =
-    answer.sources.length > 0
-      ? answer.sources.map(s => ({title: s.title, url: s.url}))
-      : [{title: domainOf(pageUrl), url: pageUrl}];
-  return (
-    <View style={{flex: 1}}>
-      <View style={{alignItems: 'center', paddingTop: 10}}>
-        <View style={{width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border}} />
-      </View>
-      <ScrollView style={{flex: 1}} contentContainerStyle={{padding: 20, paddingBottom: 40}}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
-          <TouchableOpacity onPress={onToggleSources} style={{flexDirection: 'row', alignItems: 'center'}}>
-            <Text style={{color: colors.text, fontSize: 17, fontWeight: '700', marginRight: 6}}>
-              Read {chips.length} web page{chips.length === 1 ? '' : 's'}
-            </Text>
-            <Text style={{color: colors.muted, fontSize: 16}}>{sourcesOpen ? '﹀' : '︿'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={{color: colors.muted, fontSize: 16}}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        {sourcesOpen && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 16, marginHorizontal: -20, paddingHorizontal: 20}}>
-            {chips.map((c, i) => (
-              <View
-                key={`${c.url}-${i}`}
-                style={{
-                  backgroundColor: colors.panel,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 12,
-                  padding: 12,
-                  marginRight: 10,
-                  width: 200,
-                }}>
-                <Text style={{color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 8}} numberOfLines={2}>
-                  {c.title}
-                </Text>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                  <Favicon url={c.url} size={16} />
-                  <Text style={{color: colors.muted, fontSize: 13, marginLeft: 6}} numberOfLines={1}>
-                    {domainOf(c.url)}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        )}
-
-        <Text style={{color: HEADLINE_BLUE, fontSize: 30, fontWeight: '800', lineHeight: 36, marginBottom: 14}}>
-          {answer.title}
-        </Text>
-        <Text style={{color: colors.text, fontSize: 17, lineHeight: 25, marginBottom: 18}}>{answer.directAnswer}</Text>
-
-        <FactSection emoji="📌" label="Key points">
-          {answer.keyPoints.map((k, i) => (
-            <Text key={i} style={sectionText()}>• {k}</Text>
-          ))}
-        </FactSection>
-        <FactSection emoji="📊" label="Stats">
-          {answer.stats.map((row, i) => (
-            <Text key={i} style={sectionText()}>
-              {Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' · ')}
-            </Text>
-          ))}
-        </FactSection>
-        <FactSection emoji="🗓" label="Timeline">
-          {answer.timeline.map((t, i) => (
-            <Text key={i} style={sectionText()}>→ {t}</Text>
-          ))}
-        </FactSection>
-        {answer.fantasyImpact && (
-          <FactSection emoji="🏈" label="Fantasy impact">
-            <Text style={sectionText()}>{answer.fantasyImpact}</Text>
-          </FactSection>
-        )}
-        {answer.bettingContext && (
-          <FactSection emoji="📈" label="Betting context">
-            <Text style={sectionText()}>{answer.bettingContext}</Text>
-          </FactSection>
-        )}
-        <FactSection emoji="✅" label="Sourced claims">
-          {answer.claims.map((c, i) => (
-            <Text key={i} style={sectionText()}>
-              {c.text}
-              {c.citationIds.map(id => ` [${sourceIndex.get(id) ?? '?'}]`).join('')}
-            </Text>
-          ))}
-        </FactSection>
-        <FactSection emoji="⚠️" label="Conflicting reports">
-          {answer.conflicts.map((c, i) => (
-            <Text key={i} style={sectionText()}>• {c}</Text>
-          ))}
-        </FactSection>
-        <FactSection emoji="❓" label="Still uncertain">
-          {answer.uncertainty.map((u, i) => (
-            <Text key={i} style={sectionText()}>• {u}</Text>
-          ))}
-        </FactSection>
-
-        {answer.relatedQuestions.length > 0 && (
-          <View style={{marginTop: 8}}>
-            <Text style={{fontSize: 17, fontWeight: '700', marginBottom: 8}}>
-              <Text>🔗 </Text>
-              <Text style={{color: colors.text}}>Related</Text>
-            </Text>
-            {answer.relatedQuestions.map((q, i) => (
-              <TouchableOpacity key={i} onPress={() => onFollowUp(q)} style={{paddingVertical: 8}}>
-                <Text style={{color: colors.accent, fontSize: 16}}>{q} ›</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
-  );
-}
-
-function FactSection({emoji, label, children}: {emoji: string; label: string; children: React.ReactNode}) {
-  const kids = React.Children.toArray(children);
-  if (kids.length === 0) return null;
-  return (
-    <View style={{marginBottom: 18}}>
-      <Text style={{fontSize: 17, fontWeight: '700', marginBottom: 8}}>
-        <Text>{emoji} </Text>
-        <Text style={{color: colors.text}}>{label}</Text>
-      </Text>
-      {kids}
-    </View>
-  );
-}
-
-function sectionText() {
-  return {color: colors.text, fontSize: 16, lineHeight: 24, marginBottom: 6} as const;
-}
