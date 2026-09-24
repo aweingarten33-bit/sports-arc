@@ -1,7 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import {
-  FlatList,
   Modal,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,7 +11,14 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
-import {defaultSites, rankSites, type SiteTile} from '@sideline/config';
+import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  defaultSites,
+  rankSites,
+  type SiteCategory,
+  type SiteTile,
+} from '@sideline/config';
 import {isSafeUrl} from '@sideline/providers';
 import {useTabsStore} from '../state/tabs';
 import {resolveInput} from '../state/url';
@@ -24,8 +31,9 @@ type Nav = NativeStackNavigationProp<SitesStackParamList>;
 
 /**
  * Sites tray: the launcher that replaces the URL bar. A grid of
- * sports-destination tiles the user taps to open — no typing needed.
- * The "+" tile is the one place typing lives (add your own site).
+ * sports-destination tiles the user taps to open — no typing needed,
+ * organized by category. The "+" tile is the one place typing lives
+ * (add your own site).
  */
 export function SitesTrayScreen() {
   const navigation = useNavigation<Nav>();
@@ -37,11 +45,21 @@ export function SitesTrayScreen() {
   const [input, setInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
 
-  const sites = useMemo(() => {
+  const sections = useMemo(() => {
     const now = new Date();
     const ranked = rankSites(defaultSites, {dayOfWeek: now.getDay(), hour: now.getHours()});
-    return [...ranked, ...customSites];
-  }, [customSites]);
+    const byCat = new Map<SiteCategory, SiteTile[]>();
+    for (const site of ranked) {
+      if (!site.category) continue;
+      const list = byCat.get(site.category) ?? [];
+      list.push(site);
+      byCat.set(site.category, list);
+    }
+    return CATEGORY_ORDER.filter(c => (byCat.get(c)?.length ?? 0) > 0).map(c => ({
+      title: CATEGORY_LABELS[c],
+      sites: byCat.get(c)!,
+    }));
+  }, []);
 
   const openSite = (site: SiteTile) => {
     openTab(site.url, {title: site.name, siteId: site.id});
@@ -58,7 +76,7 @@ export function SitesTrayScreen() {
       id: `custom-${Date.now().toString(36)}`,
       name: domainOf(url),
       url,
-      color: colors.border,
+      color: colors.accent,
     };
     addCustomSite(site);
     setInput('');
@@ -73,13 +91,38 @@ export function SitesTrayScreen() {
         <Text style={styles.title}>Sites</Text>
         <Text style={[styles.muted, {marginBottom: 4}]}>Tap a tile to open it. No URL bar needed.</Text>
       </View>
-      <FlatList
-        data={sites}
-        keyExtractor={s => s.id}
-        numColumns={3}
-        contentContainerStyle={{padding: 12, paddingBottom: 32}}
-        renderItem={({item}) => <SiteCell site={item} onPress={() => openSite(item)} />}
-        ListFooterComponent={
+      <ScrollView contentContainerStyle={{paddingHorizontal: 12, paddingBottom: 40}}>
+        {sections.map(section => (
+          <View key={section.title} style={{marginBottom: 8}}>
+            <Text style={{color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginLeft: 6, marginBottom: 6}}>
+              {section.title}
+            </Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+              {section.sites.map(site => (
+                <View key={site.id} style={{width: '33.333%', padding: 6}}>
+                  <SiteCell site={site} onPress={() => openSite(site)} />
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+
+        {customSites.length > 0 && (
+          <View style={{marginBottom: 8}}>
+            <Text style={{color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginLeft: 6, marginBottom: 6}}>
+              Added by you
+            </Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+              {customSites.map(site => (
+                <View key={site.id} style={{width: '33.333%', padding: 6}}>
+                  <SiteCell site={site} onPress={() => openSite(site)} />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View style={{width: '33.333%', padding: 6}}>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Add your own site"
@@ -89,8 +132,6 @@ export function SitesTrayScreen() {
               setAdding(true);
             }}
             style={{
-              flex: 1,
-              margin: 6,
               borderRadius: 16,
               borderWidth: 1.5,
               borderColor: colors.border,
@@ -102,8 +143,8 @@ export function SitesTrayScreen() {
             <Text style={{color: colors.accent, fontSize: 28}}>+</Text>
             <Text style={{color: colors.muted, fontSize: 13, marginTop: 4}}>Add site</Text>
           </TouchableOpacity>
-        }
-      />
+        </View>
+      </ScrollView>
 
       <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24}}>
@@ -143,11 +184,7 @@ export function SitesTrayScreen() {
 
 function SiteCell({site, onPress}: {site: SiteTile; onPress: () => void}) {
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${site.name}`}
-      onPress={onPress}
-      style={{flex: 1, margin: 6}}>
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Open ${site.name}`} onPress={onPress}>
       <View
         style={{
           borderRadius: 16,

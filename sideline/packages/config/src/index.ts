@@ -8,5 +8,5 @@ export interface ChirpNotification { title:string; body:string; eventId:string; 
 export function chirp(event:ChangeEvent,context:UserSportsContext|null,preferences:PrivacyPreferences):ChirpNotification|null {if(!preferences.notifications)return null; const personal=context?.followedPlayerIds.includes('brunson')?'Brunson': 'your roster'; return {title:'Chirp',body:event.type==='line-move'?`${personal} moved the number. The spreadsheet is pretending this was calm.`:`${personal} has a storyline now: ${event.detail}`,eventId:event.id};}
 export const mockChangeEvents:ChangeEvent[]=[{id:'c1',type:'line-move',subject:'brunson-prop',detail:'27.5 points, -110'},{id:'c2',type:'injury',subject:'brunson',detail:'status changed before lock'},{id:'c3',type:'projection-change',subject:'roster-1',detail:'projection ticked up'}];
 
-export { defaultSites, rankSites, isSportsbookUrl } from './sites';
-export type { SiteTile, RankContext } from './sites';
+export { defaultSites, rankSites, isSportsbookUrl, CATEGORY_ORDER, CATEGORY_LABELS } from './sites';
+export type { SiteTile, RankContext, SiteCategory } from './sites';
