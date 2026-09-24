@@ -1,0 +1,1 @@
+{"name":"@sideline/providers","version":"0.1.0","main":"src/web.ts","types":"src/web.ts","scripts":{"build":"tsc --noEmit","test":"vitest run"}}

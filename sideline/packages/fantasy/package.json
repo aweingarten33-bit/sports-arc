@@ -1,0 +1,1 @@
+{"name":"@sideline/fantasy","version":"0.1.0","main":"src/index.ts","types":"src/index.ts","scripts":{"build":"tsc --noEmit","test":"vitest run"},"dependencies":{"@sideline/types":"workspace:*"}}

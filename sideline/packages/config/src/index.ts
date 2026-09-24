@@ -1,0 +1,9 @@
+import type { UserSportsContext, PrivacyPreferences } from '@sideline/types';
+export interface CompanionPersona { name:string; tone:string; guidelines:string[]; }
+export const defaultPersona:CompanionPersona={name:'The Companion',tone:'warm, sharp, a little wry',guidelines:['Reference the user’s world, never invent knowledge.','Punch at situations, never the user.','Never make the line a cited factual claim.']};
+export interface CompanionEngine { line(context:UserSportsContext|null, preferences:PrivacyPreferences):string|null; }
+export class DefaultCompanion implements CompanionEngine { line(context,preferences){if(!context||!preferences.personalization)return null; const team=context.followedTeamIds.includes('nyk')?'The Knicks are making this look suspiciously interesting.':'Your sports universe has entered its “one more tab” era.'; return `${team} I’ll keep an eye on the useful weirdness.`;} }
+export interface ChangeEvent { id:string; type:'injury'|'line-move'|'loss'|'projection-change'; subject:string; detail:string; }
+export interface ChirpNotification { title:string; body:string; eventId:string; }
+export function chirp(event:ChangeEvent,context:UserSportsContext|null,preferences:PrivacyPreferences):ChirpNotification|null {if(!preferences.notifications)return null; const personal=context?.followedPlayerIds.includes('brunson')?'Brunson': 'your roster'; return {title:'Chirp',body:event.type==='line-move'?`${personal} moved the number. The spreadsheet is pretending this was calm.`:`${personal} has a storyline now: ${event.detail}`,eventId:event.id};}
+export const mockChangeEvents:ChangeEvent[]=[{id:'c1',type:'line-move',subject:'brunson-prop',detail:'27.5 points, -110'},{id:'c2',type:'injury',subject:'brunson',detail:'status changed before lock'},{id:'c3',type:'projection-change',subject:'roster-1',detail:'projection ticked up'}];
