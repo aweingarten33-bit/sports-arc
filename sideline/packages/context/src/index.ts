@@ -1,3 +1,5 @@
+export {createContextStore, useContextEnvelope} from './provider';
+export type {ContextStore} from './provider';
 import type { EntityId } from '@sideline/types';
 export type ContextSeed =
  | { kind:'search-query'; query:string }
