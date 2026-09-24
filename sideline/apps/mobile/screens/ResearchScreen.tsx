@@ -2,7 +2,8 @@ import React, {useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {MockResearchEngine, type ProgressState, type ResearchAnswer} from '@sideline/research';
+import {MockResearchEngine, streamResearch, type ProgressState, type ResearchAnswer} from '@sideline/research';
+import {resolveApiBaseUrl} from '@sideline/config';
 import {useCurrentEnvelope} from '../state/context';
 import {colors, styles} from '../ui/theme';
 import {ScoutAnswerView} from '../components/ScoutAnswerView';
@@ -26,22 +27,38 @@ export function ResearchScreen() {
   const [progress, setProgress] = useState<ProgressState[]>([]);
   const [answer, setAnswer] = useState<ResearchAnswer | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [mocked, setMocked] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const fallbackRef = useRef<MockResearchEngine | null>(null);
+  if (!fallbackRef.current) fallbackRef.current = new MockResearchEngine();
 
   useEffect(() => {
     if (!envelope) return;
-    const engine = new MockResearchEngine();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setProgress([]);
     setAnswer(null);
     setCancelled(false);
+    setMocked(false);
     let alive = true;
     (async () => {
-      for await (const ev of engine.research(route.params.question, envelope, ctrl.signal)) {
+      // Live API first; the mock engine takes over automatically when the
+      // API is unreachable or the server is running without provider keys.
+      for await (const ev of streamResearch({
+        baseUrl: resolveApiBaseUrl(),
+        question: route.params.question,
+        context: envelope,
+        signal: ctrl.signal,
+        fallback: fallbackRef.current ?? undefined,
+      })) {
         if (!alive || ctrl.signal.aborted) return;
-        if (ev.answer) setAnswer(ev.answer);
-        else setProgress(prev => (prev.includes(ev.state) ? prev : [...prev, ev.state]));
+        if (ev.answer) {
+          setAnswer(ev.answer);
+          setMocked(ev.mocked);
+        } else {
+          setMocked(ev.mocked);
+          setProgress(prev => (prev.includes(ev.state) ? prev : [...prev, ev.state]));
+        }
       }
     })();
     return () => {
@@ -73,6 +90,15 @@ export function ResearchScreen() {
 
   return (
     <ScrollView style={styles.root}>
+      {/* DEMO/LIVE badge — the question itself is shown by ScoutAnswerView's query pill. */}
+      <View style={[styles.headerRow, {justifyContent: 'flex-end', marginBottom: 4}]}>
+        <Text
+          style={[styles.badge, mocked ? styles.badgeDemo : styles.badgeLive]}
+          accessibilityLabel={mocked ? 'Demo answer, offline mock' : 'Live answer from the research API'}>
+          {mocked ? 'DEMO' : 'LIVE'}
+        </Text>
+      </View>
+
       {/* Streaming progress */}
       <View style={styles.card}>
         {ALL_STATES.map(s => {

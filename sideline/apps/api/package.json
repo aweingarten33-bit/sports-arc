@@ -1,1 +1,26 @@
-{"name":"@sideline/api","private":true,"scripts":{"dev":"tsx src/index.ts","build":"tsc --noEmit","test":"vitest run"},"dependencies":{"@sideline/research":"workspace:*","@sideline/types":"workspace:*","fastify":"^5.0.0"},"devDependencies":{"tsx":"^4.19.1"}}
+{
+  "name": "@sideline/api",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^4.0.79",
+    "@mozilla/readability": "^0.6.0",
+    "@sideline/research": "workspace:*",
+    "@sideline/types": "workspace:*",
+    "@tavily/core": "^0.7.13",
+    "ai": "^7.0.113",
+    "fastify": "^5.0.0",
+    "jsdom": "^30.1.1",
+    "@sideline/context": "workspace:*",
+    "@sideline/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.1",
+    "@types/jsdom": "^27.0.0"
+  }
+}
