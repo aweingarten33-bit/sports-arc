@@ -53,8 +53,6 @@ export const defaultSites: SiteTile[] = [
   {id: 'prizepicks', name: 'PrizePicks', url: 'https://www.prizepicks.com', color: '#ff2d78', category: 'betting'},
   {id: 'fanatics', name: 'Fanatics Sportsbook', url: 'https://sportsbook.fanatics.com', color: '#e8e8e8', category: 'betting'},
   {id: 'action-network', name: 'Action Network', url: 'https://www.actionnetwork.com', color: '#00c389', category: 'betting'},
-  {id: 'oddsjam', name: 'OddsJam', url: 'https://oddsjam.com', color: '#ff6b00', category: 'betting'},
-  {id: 'props-cash', name: 'Props.Cash', url: 'https://props.cash', color: '#22c55e', category: 'betting'},
 
   // ——— Scores / Live ———
   {id: 'thescore', name: 'theScore', url: 'https://www.thescore.com', color: '#1a73e8', category: 'scores'},
